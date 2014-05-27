@@ -71,8 +71,13 @@ class ExpressCheckoutPlugin extends AbstractPlugin
 
     public function credit(FinancialTransactionInterface $transaction, $retry)
     {
-        $data = $transaction->getExtendedData();
+
+        $credit = $transaction->getCredit();
+        if (false === $credit->isIndependent())
+            throw new \Exception('Express Checkout Plugin does not support independent credits.');
+
         $approveTransaction = $transaction->getCredit()->getPayment()->getApproveTransaction();
+        $authorization_id   = $approveTransaction->getReferenceNumber();
 
         $parameters = array();
         if (Number::compare($transaction->getRequestedAmount(), $approveTransaction->getProcessedAmount()) !== 0) {
@@ -81,12 +86,12 @@ class ExpressCheckoutPlugin extends AbstractPlugin
             $parameters['CURRENCYCODE'] = $transaction->getCredit()->getPaymentInstruction()->getCurrency();
         }
 
-        $response = $this->client->requestRefundTransaction($data->get('authorization_id'), $parameters);
+        $response = $this->client->requestRefundTransaction($authorization_id, $parameters);
 
         $this->throwUnlessSuccessResponse($response, $transaction);
 
         $transaction->setReferenceNumber($response->body->get('REFUNDTRANSACTIONID'));
-        $transaction->setProcessedAmount($response->body->get('NETREFUNDAMT'));
+        $transaction->setProcessedAmount($response->body->get('GROSSREFUNDAMT'));
         $transaction->setResponseCode(PluginInterface::RESPONSE_CODE_SUCCESS);
     }
 
