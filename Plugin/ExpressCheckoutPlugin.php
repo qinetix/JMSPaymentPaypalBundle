@@ -73,7 +73,7 @@ class ExpressCheckoutPlugin extends AbstractPlugin
     {
 
         $credit = $transaction->getCredit();
-        if (false === $credit->isIndependent())
+        if (true === $credit->isIndependent())
             throw new \Exception('Express Checkout Plugin does not support independent credits.');
 
         $approveTransaction = $transaction->getCredit()->getPayment()->getApproveTransaction();
